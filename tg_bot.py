@@ -216,9 +216,9 @@ def handle_users_reply(update: Update, context: CallbackContext):
 def get_database_connection():
     global _database
     if _database is None:
-        database_host = os.getenv("DATABASE_HOST")
-        database_port = os.getenv("DATABASE_PORT")
-        database_name = os.getenv("DATABASE_NAME")
+        database_host = os.getenv("REDIS_HOST")
+        database_port = os.getenv("REDIS_PORT")
+        database_name = os.getenv("REDIS_NAME")
         _database = redis.Redis(
             host=database_host,
             port=database_port,
