@@ -18,19 +18,28 @@ from telegram.ext import (
     CallbackContext,
 )
 
-from extenshion import get_products, get_picture
+from extenshion import (
+    get_products,
+    get_picture,
+    get_or_create_cart,
+    add_product_to_cart,
+    get_cart_products,
+)
 
 _database = None
 
-START, HANDLE_MENU, HANDLE_DESCRIPTION = map(str, range(3))
+START, HANDLE_MENU, HANDLE_DESCRIPTION, HANDLE_CART = map(str, range(4))
+
+logger = logging.getLogger("fish_bot")
+logger.setLevel(logging.DEBUG)
 
 
 def start(update: Update, context: CallbackContext):
-    products = get_products()  # id title price description
+    products = get_products()
     keyboard = [
         [InlineKeyboardButton(product["title"], callback_data=product["documentId"])]
         for product in products
-    ]
+    ] + [[InlineKeyboardButton("Моя корзина", callback_data="cart")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
     update.message.reply_text(
         text="Выберите интересующий товар:", reply_markup=reply_markup
@@ -38,31 +47,88 @@ def start(update: Update, context: CallbackContext):
     return HANDLE_MENU
 
 
-def handle_menu(update: Update, context: CallbackContext):
+def cart_render(update: Update, context: CallbackContext):
+    query = update.callback_query
+    query.delete_message()
+    chat_id = update.callback_query.message.chat_id
+    cart_products = get_cart_products(str(chat_id))
+    keyboard = [
+        [
+            InlineKeyboardButton(
+                f"{product['title']} {product['price']}",
+                callback_data=f"{product['documentId']}",
+            )
+        ]
+        for product in cart_products
+    ] + [[InlineKeyboardButton("Назад", callback_data="back")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    update.message.reply_text(text=f"{cart_products}", reply_markup=reply_markup)
+    return HANDLE_CART
+
+
+def render_product(update: Update, context: CallbackContext):
     query = update.callback_query
     product_id = query.data
     product = get_products(product_id)
-    if product:
-        picture_url = product["picture"]["url"]
-        picture = get_picture(picture_url)
-        keyboard = [[InlineKeyboardButton("Назад", callback_data="back")]]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        query.edit_message_media(
-            media=InputMediaPhoto(
-                picture,
-                filename="picture.jpg",
-                caption=f"{product['title']}\n{product['description']}\n{product['price']}",
+    picture_url = product["picture"]["url"]
+    picture = get_picture(picture_url)
+    keyboard = [
+        [
+            InlineKeyboardButton("Назад", callback_data="back"),
+            InlineKeyboardButton(
+                "Добавить в корзину 1 кг", callback_data=f"1$${product_id}"
             ),
-            reply_markup=reply_markup,
-        )
-    else:
-        query.edit_message_text(text="Товар не найден")
+            InlineKeyboardButton(
+                "Добавить в корзину 2 кг", callback_data=f"2$${product_id}"
+            ),
+            InlineKeyboardButton(
+                "Добавить в корзину 5 кг", callback_data=f"5$${product_id}"
+            ),
+            InlineKeyboardButton(
+                "Добавить в корзину 10 кг", callback_data=f"10$${product_id}"
+            ),
+        ]
+    ] + [[InlineKeyboardButton("Моя корзина", callback_data="cart")]]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    query.edit_message_media(
+        media=InputMediaPhoto(
+            picture,
+            filename="picture.jpg",
+            caption=f"{product['title']}\n{product['description']}\n{product['price']}",
+        ),
+        reply_markup=reply_markup,
+    )
     return HANDLE_DESCRIPTION
+
+
+def handle_menu(update: Update, context: CallbackContext):
+    query = update.callback_query
+    if query.data == "cart":
+        return cart_render(update, context)
+    else:
+        return render_product(update, context)
+
+
+def handle_cart(update: Update, context: CallbackContext):
+    query = update.callback_query
+    if query.data == "back":
+        query.delete_message()
+        return start(query, context)
+    else:
+        print(f" delete message {query.data}")
+    return HANDLE_CART
 
 
 def handle_description(update: Update, context: CallbackContext):
     query = update.callback_query
     if query.data == "back":
+        query.delete_message()
+        return start(query, context)
+    else:
+        amount_kg, product_id = query.data.split("$$")
+        chat_id = update.callback_query.message.chat_id
+        cart_document_id = get_or_create_cart(str(chat_id))
+        add_product_to_cart(cart_document_id, product_id, amount_kg)
         query.delete_message()
         return start(query, context)
 
@@ -85,6 +151,7 @@ def handle_users_reply(update: Update, context: CallbackContext):
         START: start,
         HANDLE_MENU: handle_menu,
         HANDLE_DESCRIPTION: handle_description,
+        HANDLE_CART: handle_cart,
     }
     state_handler = states_functions[user_state]
     try:
