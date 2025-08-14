@@ -55,14 +55,14 @@ def cart_render(update: Update, context: CallbackContext):
     keyboard = [
         [
             InlineKeyboardButton(
-                f"{product['title']} {product['price']}",
-                callback_data=f"{product['documentId']}",
+                f"{product_in_cart['product']['title']} {product_in_cart['product']['price']}",
+                callback_data=f"{product_in_cart['documentId']}",
             )
         ]
-        for product in cart_products
+        for product_in_cart in cart_products
     ] + [[InlineKeyboardButton("Назад", callback_data="back")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    update.message.reply_text(text=f"{cart_products}", reply_markup=reply_markup)
+    query.message.reply_text(text=f"{cart_products}", reply_markup=reply_markup)
     return HANDLE_CART
 
 
@@ -74,21 +74,31 @@ def render_product(update: Update, context: CallbackContext):
     picture = get_picture(picture_url)
     keyboard = [
         [
-            InlineKeyboardButton("Назад", callback_data="back"),
             InlineKeyboardButton(
                 "Добавить в корзину 1 кг", callback_data=f"1$${product_id}"
-            ),
+            )
+        ],
+        [
             InlineKeyboardButton(
                 "Добавить в корзину 2 кг", callback_data=f"2$${product_id}"
-            ),
+            )
+        ],
+        [
             InlineKeyboardButton(
                 "Добавить в корзину 5 кг", callback_data=f"5$${product_id}"
-            ),
+            )
+        ],
+        [
             InlineKeyboardButton(
                 "Добавить в корзину 10 кг", callback_data=f"10$${product_id}"
-            ),
+            )
+        ],
+    ] + [
+        [
+            InlineKeyboardButton("Моя корзина", callback_data="cart"),
+            InlineKeyboardButton("Назад", callback_data="back"),
         ]
-    ] + [[InlineKeyboardButton("Моя корзина", callback_data="cart")]]
+    ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     query.edit_message_media(
         media=InputMediaPhoto(
@@ -128,7 +138,7 @@ def handle_description(update: Update, context: CallbackContext):
         amount_kg, product_id = query.data.split("$$")
         chat_id = update.callback_query.message.chat_id
         cart_document_id = get_or_create_cart(str(chat_id))
-        add_product_to_cart(cart_document_id, product_id, amount_kg ,chat_id)
+        add_product_to_cart(cart_document_id, product_id, amount_kg, chat_id)
         query.delete_message()
         return start(query, context)
 
