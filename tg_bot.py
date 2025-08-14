@@ -128,7 +128,7 @@ def handle_description(update: Update, context: CallbackContext):
         amount_kg, product_id = query.data.split("$$")
         chat_id = update.callback_query.message.chat_id
         cart_document_id = get_or_create_cart(str(chat_id))
-        add_product_to_cart(cart_document_id, product_id, amount_kg)
+        add_product_to_cart(cart_document_id, product_id, amount_kg ,chat_id)
         query.delete_message()
         return start(query, context)
 
