@@ -77,7 +77,7 @@ def add_product_to_cart(
         headers = {"Authorization": f"Bearer {token}"}
         data = {
             "data": {
-                "amount_kg": current_product_id_for_update["amount_kg"] + amount_kg,
+                "amount_kg": int(current_product_id_for_update["amount_kg"]) + int(amount_kg),
             }
         }
 
