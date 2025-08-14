@@ -1,8 +1,9 @@
-import requests
 import os
-from dotenv import load_dotenv
 from io import BytesIO
 from urllib.parse import urljoin
+
+import requests
+from dotenv import load_dotenv
 
 
 def get_products(documentId=None):
@@ -77,7 +78,8 @@ def add_product_to_cart(
         headers = {"Authorization": f"Bearer {token}"}
         data = {
             "data": {
-                "amount_kg": int(current_product_id_for_update["amount_kg"]) + int(amount_kg),
+                "amount_kg": int(current_product_id_for_update["amount_kg"])
+                + int(amount_kg),
             }
         }
 
@@ -118,6 +120,32 @@ def get_cart_products(user_tg_id):
     else:
         raise Exception(
             f"Ошибка получения товаров в корзине: {response.status_code, response.text}"
+        )
+
+
+def delete_from_cart(product_cart_document_id):
+    url = urljoin(
+        os.getenv("STRAPI_URL"), f"api/product-carts/{product_cart_document_id}"
+    )
+    token = os.getenv("STRAPI_TOKEN")
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.delete(url, headers=headers)
+    if response.status_code != 204:
+        raise Exception(
+            f"Ошибка удаления товара из корзины: {response.status_code, response.text}"
+        )
+
+
+def add_client_email(email, tg_user_id):
+    url = urljoin(os.getenv("STRAPI_URL"), "api/clients/")
+    token = os.getenv("STRAPI_TOKEN")
+    headers = {"Authorization": f"Bearer {token}"}
+    data = {"data": {"email": email, "tg_user_id": str(tg_user_id)}}
+    response = requests.post(url, headers=headers, json=data)
+    print(response.status_code, response.text)
+    if response.status_code != 201:
+        raise Exception(
+            f"Ошибка добавления email клиента: {response.status_code, response.text}"
         )
 
 
