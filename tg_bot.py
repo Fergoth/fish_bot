@@ -37,7 +37,9 @@ logger.setLevel(logging.DEBUG)
 
 
 def start(update: Update, context: CallbackContext):
-    products = get_products()
+    url = context.bot_data["url"]
+    starapi_token = context.bot_data["starapi_token"]
+    products = get_products(url, starapi_token)
     keyboard = [
         [InlineKeyboardButton(product["title"], callback_data=product["documentId"])]
         for product in products
@@ -50,10 +52,12 @@ def start(update: Update, context: CallbackContext):
 
 
 def render_cart(update: Update, context: CallbackContext):
+    url = context.bot_data["url"]
+    starapi_token = context.bot_data["starapi_token"]
     query = update.callback_query
     query.delete_message()
     chat_id = update.callback_query.message.chat_id
-    cart_products = get_cart_products(str(chat_id))
+    cart_products = get_cart_products(url, starapi_token, str(chat_id))
     keyboard = [
         [
             InlineKeyboardButton(
@@ -69,7 +73,7 @@ def render_cart(update: Update, context: CallbackContext):
     reply_markup = InlineKeyboardMarkup(keyboard)
     products = [
         f"""{product_in_cart["product"]["title"]}
-            {product_in_cart["product"]["description"]} 
+            {product_in_cart["product"]["description"]}
             {product_in_cart["product"]["price"]} за кг
             {product_in_cart["amount_kg"]} кг в корзине
             {product_in_cart["product"]["price"] * product_in_cart["amount_kg"]} рублей
@@ -88,11 +92,13 @@ def render_cart(update: Update, context: CallbackContext):
 
 
 def render_product(update: Update, context: CallbackContext):
+    url = context.bot_data["url"]
+    starapi_token = context.bot_data["starapi_token"]
     query = update.callback_query
     product_id = query.data
-    product = get_products(product_id)
+    product = get_products(url, starapi_token, product_id)
     picture_url = product["picture"]["url"]
-    picture = get_picture(picture_url)
+    picture = get_picture(url, starapi_token, picture_url)
     keyboard = [
         [
             InlineKeyboardButton(
@@ -141,6 +147,8 @@ def handle_menu(update: Update, context: CallbackContext):
 
 
 def handle_cart(update: Update, context: CallbackContext):
+    url = context.bot_data["url"]
+    starapi_token = context.bot_data["starapi_token"]
     query = update.callback_query
     if query.data == "back":
         query.delete_message()
@@ -154,11 +162,13 @@ def handle_cart(update: Update, context: CallbackContext):
         query.message.reply_text("Введите ваш email:", reply_markup=reply_markup)
         return WAITING_EMAIL
     else:
-        delete_from_cart(query.data)
+        delete_from_cart(url, starapi_token, query.data)
         return render_cart(update, context)
 
 
 def handle_description(update: Update, context: CallbackContext):
+    url = context.bot_data["url"]
+    starapi_token = context.bot_data["starapi_token"]
     query = update.callback_query
     if query.data == "back":
         query.delete_message()
@@ -166,22 +176,25 @@ def handle_description(update: Update, context: CallbackContext):
     else:
         amount_kg, product_id = query.data.split("$$")
         chat_id = update.callback_query.message.chat_id
-        cart_document_id = get_or_create_cart(str(chat_id))
-        add_product_to_cart(cart_document_id, product_id, amount_kg, chat_id)
+        cart_document_id = get_or_create_cart(url, starapi_token, str(chat_id))
+        add_product_to_cart(
+            url, starapi_token, cart_document_id, product_id, amount_kg, chat_id
+        )
         query.delete_message()
         return start(query, context)
 
 
 def wait_for_email(update: Update, context: CallbackContext):
+    url = context.bot_data["url"]
+    starapi_token = context.bot_data["starapi_token"]
     query = update.callback_query
     if query and query.data == "back":
         query.delete_message()
         return start(query, context)
     email = update.message.text
     chat_id = update.message.chat_id
-    add_client_email(email, chat_id)
+    add_client_email(url, starapi_token, email, chat_id)
     return start(update, context)
-
 
 
 def handle_users_reply(update: Update, context: CallbackContext):
@@ -230,9 +243,13 @@ def get_database_connection():
 
 if __name__ == "__main__":
     load_dotenv()
+    url = os.getenv("STRAPI_URL")
+    starapi_token = os.getenv("STRAPI_TOKEN")
     token = os.getenv("TELEGRAM_TOKEN")
     updater = Updater(token)
     dispatcher = updater.dispatcher
+    dispatcher.bot_data["url"] = url
+    dispatcher.bot_data["starapi_token"] = starapi_token
     dispatcher.add_handler(CallbackQueryHandler(handle_users_reply))
     dispatcher.add_handler(MessageHandler(Filters.text, handle_users_reply))
     dispatcher.add_handler(CommandHandler("start", handle_users_reply))
