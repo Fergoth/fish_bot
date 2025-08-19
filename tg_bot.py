@@ -34,7 +34,7 @@ _database = None
 START, HANDLE_MENU, HANDLE_DESCRIPTION, HANDLE_CART, WAITING_EMAIL = map(str, range(5))
 
 logger = logging.getLogger("fish_bot")
-logger.setLevel(logging.DEBUG)
+
 
 
 def start(update: Update, context: CallbackContext):
@@ -251,6 +251,7 @@ if __name__ == "__main__":
     url = os.getenv("STRAPI_URL")
     starapi_token = os.getenv("STRAPI_TOKEN")
     token = os.getenv("TELEGRAM_TOKEN")
+    logger.setLevel(logging.INFO)
     updater = Updater(token)
     dispatcher = updater.dispatcher
     dispatcher.bot_data["url"] = url
