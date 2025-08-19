@@ -29,12 +29,9 @@ from star_api_requests import (
     add_client_email,
 )
 
-_database = None
-
 START, HANDLE_MENU, HANDLE_DESCRIPTION, HANDLE_CART, WAITING_EMAIL = map(str, range(5))
 
 logger = logging.getLogger("fish_bot")
-
 
 
 def start(update: Update, context: CallbackContext):
@@ -203,7 +200,7 @@ def wait_for_email(update: Update, context: CallbackContext):
 
 
 def handle_users_reply(update: Update, context: CallbackContext):
-    db = get_database_connection()
+    db = context.bot_data["database"]
     if update.message:
         user_reply = update.message.text
         chat_id = update.message.chat_id
@@ -231,31 +228,28 @@ def handle_users_reply(update: Update, context: CallbackContext):
         print(err)
 
 
-def get_database_connection():
-    global _database
-    if _database is None:
-        database_host = os.getenv("REDIS_HOST")
-        database_port = os.getenv("REDIS_PORT")
-        database_name = os.getenv("REDIS_NAME")
-        _database = redis.Redis(
-            host=database_host,
-            port=database_port,
-            db=database_name,
-            decode_responses=True,
-        )
-    return _database
-
-
 if __name__ == "__main__":
     load_dotenv()
     url = os.getenv("STRAPI_URL")
     starapi_token = os.getenv("STRAPI_TOKEN")
     token = os.getenv("TELEGRAM_TOKEN")
+
     logger.setLevel(logging.INFO)
+
+    database_host = os.getenv("REDIS_HOST")
+    database_port = os.getenv("REDIS_PORT")
+    database_name = os.getenv("REDIS_NAME")
+    database = redis.Redis(
+        host=database_host,
+        port=database_port,
+        db=database_name,
+        decode_responses=True,
+    )
     updater = Updater(token)
     dispatcher = updater.dispatcher
     dispatcher.bot_data["url"] = url
     dispatcher.bot_data["starapi_token"] = starapi_token
+    dispatcher.bot_data["redis"] = database
     dispatcher.add_handler(CallbackQueryHandler(handle_users_reply))
     dispatcher.add_handler(MessageHandler(Filters.text, handle_users_reply))
     dispatcher.add_handler(CommandHandler("start", handle_users_reply))
