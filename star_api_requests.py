@@ -45,7 +45,7 @@ def create_cart(url, token, tg_user_id):
 def add_product_to_cart(
     url, token, cart_document_id, product_document_id, amount_kg=1, chat_id=None
 ):
-    current_products_cart = get_cart_products(chat_id)
+    current_products_cart = get_cart_products(url, token, chat_id)
     current_product_id_for_update = None
     for product_in_cart in current_products_cart:
         if product_in_cart["product"]["documentId"] == product_document_id:
