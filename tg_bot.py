@@ -200,7 +200,7 @@ def wait_for_email(update: Update, context: CallbackContext):
 
 
 def handle_users_reply(update: Update, context: CallbackContext):
-    db = context.bot_data["database"]
+    db = context.bot_data["redis"]
     if update.message:
         user_reply = update.message.text
         chat_id = update.message.chat_id
