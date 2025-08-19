@@ -18,7 +18,7 @@ from telegram.ext import (
     Updater,
 )
 
-from extenshion import (
+from star_api_requests import (
     add_product_to_cart,
     delete_from_cart,
     get_cart_products,
