@@ -3,6 +3,7 @@ from urllib.parse import urljoin
 
 import requests
 
+
 def get_products(url, token, documentId=None):
     url = urljoin(url, "api/products/")
     params = {}
@@ -14,6 +15,7 @@ def get_products(url, token, documentId=None):
     response.raise_for_status()
     return response.json()["data"]
 
+
 def get_picture(url, token, picture_url):
     url = urljoin(url, picture_url)
     headers = {"Authorization": f"Bearer {token}"}
@@ -22,28 +24,22 @@ def get_picture(url, token, picture_url):
     return BytesIO(response.content)
 
 
-
 def get_cart(url, token, tg_user_id):
-    url = urljoin(url, "api/carts/")
-    headers = {"Authorization": f"Bearer {token}"}
-    response = requests.get(url, headers=headers)
-    response.raise_for_status()
-    return response.json()
-
-def get_or_create_cart(url, token, tg_user_id):
     url = urljoin(url, "api/carts/")
     headers = {"Authorization": f"Bearer {token}"}
     params = {"filters[tg_user_id][$eq]": tg_user_id}
     response = requests.get(url, headers=headers, params=params)
     response.raise_for_status()
-    carts = response.json()["data"]
-    if not carts:
-        data = {"data": {"tg_user_id": tg_user_id}}
-        response = requests.post(url, headers=headers, json=data)
-        response.raise_for_status()
-        return response.json()["data"]["documentId"]
-    else:
-        return carts[0]["documentId"]
+    return response.json()["data"]
+
+
+def create_cart(url, token, tg_user_id):
+    url = urljoin(url, "api/carts/")
+    headers = {"Authorization": f"Bearer {token}"}
+    data = {"data": {"tg_user_id": tg_user_id}}
+    response = requests.post(url, headers=headers, json=data)
+    response.raise_for_status()
+    return response.json()["data"]["documentId"]
 
 
 def add_product_to_cart(
@@ -98,9 +94,7 @@ def get_cart_products(url, token, user_tg_id):
 
 
 def delete_from_cart(url, token, product_cart_document_id):
-    url = urljoin(
-        url, f"api/product-carts/{product_cart_document_id}"
-    )
+    url = urljoin(url, f"api/product-carts/{product_cart_document_id}")
     headers = {"Authorization": f"Bearer {token}"}
     response = requests.delete(url, headers=headers)
     response.raise_for_status()

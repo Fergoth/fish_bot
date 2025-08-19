@@ -22,7 +22,8 @@ from star_api_requests import (
     add_product_to_cart,
     delete_from_cart,
     get_cart_products,
-    get_or_create_cart,
+    get_cart,
+    create_cart,
     get_picture,
     get_products,
     add_client_email,
@@ -176,7 +177,11 @@ def handle_description(update: Update, context: CallbackContext):
     else:
         amount_kg, product_id = query.data.split("$$")
         chat_id = update.callback_query.message.chat_id
-        cart_document_id = get_or_create_cart(url, starapi_token, str(chat_id))
+        cart = get_cart(url, starapi_token, str(chat_id))
+        if not cart:
+            cart_document_id = create_cart(url, starapi_token, str(chat_id))
+        else:
+            cart_document_id = cart[0]["documentId"]
         add_product_to_cart(
             url, starapi_token, cart_document_id, product_id, amount_kg, chat_id
         )
